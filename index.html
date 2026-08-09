@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>任務計時器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Caveat:wght@700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg: #05070d;
@@ -222,32 +225,64 @@
     max-width: min(600px, 88vw);
     margin: 0;
     text-align: center;
+    position: relative;
   }
 
-  .quote-text{
+  .quote-main{
     margin: 0;
-    font-family: Georgia, 'Times New Roman', 'Noto Serif TC', serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.05em;
+  }
+
+  .quote-line1{
+    font-family: 'Baloo 2', 'Fredoka', sans-serif;
     font-weight: 700;
-    font-size: clamp(1rem, 2.3vw, 1.4rem);
-    line-height: 1.65;
-    color: #16171c;
-    background: #f2d90f;
-    padding: 0.04em 0.22em;
-    box-decoration-break: clone;
-    -webkit-box-decoration-break: clone;
-    display: inline;
+    font-size: clamp(1.1rem, 3vw, 1.7rem);
+    letter-spacing: 0.02em;
+    color: #a7b6f6;
+  }
+
+  .quote-moon{
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: clamp(2.6rem, 7.5vw, 4.4rem);
+    line-height: 0.85;
+    color: #a7b6f6;
+  }
+
+  .quote-sub{
+    margin: 0.35em 0 0;
+    font-family: 'Kalam', cursive;
+    font-weight: 700;
+    font-size: clamp(0.72rem, 1.7vw, 0.95rem);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #e0a83f;
   }
 
   .quote-cite{
     display: block;
-    margin-top: 0.7rem;
-    font-family: Georgia, 'Times New Roman', 'Noto Serif TC', serif;
+    margin-top: 0.6rem;
+    font-family: 'Baloo 2', sans-serif;
     font-weight: 700;
     font-style: normal;
-    font-size: 0.8rem;
-    letter-spacing: 0.02em;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
     color: var(--grey-text);
   }
+
+  .quote-star{
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    color: #e0a83f;
+    opacity: 0.9;
+  }
+
+  .quote-star.left{ left: -2px; top: 6%; transform: rotate(-14deg); }
+  .quote-star.right{ right: 0; top: 0%; transform: rotate(16deg); }
 </style>
 </head>
 <body>
@@ -285,7 +320,17 @@
   </div>
 
   <blockquote class="quote">
-    <p class="quote-text">&ldquo;Shoot for the moon. Even if you miss, you&rsquo;ll land among the stars.&rdquo;</p>
+    <svg class="quote-star left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3 C11 7 10 9 6 10 C10 11 11 13 12 17 C13 13 14 11 18 10 C14 9 13 7 12 3 Z"/>
+    </svg>
+    <svg class="quote-star right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3 C11 7 10 9 6 10 C10 11 11 13 12 17 C13 13 14 11 18 10 C14 9 13 7 12 3 Z"/>
+    </svg>
+    <p class="quote-main">
+      <span class="quote-line1">Shoot for the</span>
+      <span class="quote-moon">Moon</span>
+    </p>
+    <p class="quote-sub">Even if you miss, you&rsquo;ll land among the stars</p>
     <cite class="quote-cite">— Norman Vincent Peale</cite>
   </blockquote>
 </main>
