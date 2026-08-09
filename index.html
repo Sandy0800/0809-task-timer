@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>任務計時器</title>
+<style>
+  :root{
+    --bg: #05070d;
+    --primary: #ff6a3d;
+    --primary-dark: #c8451f;
+    --grey-bg: #1b1e26;
+    --grey-bg-hover: #23262f;
+    --grey-border: #333846;
+    --grey-text: #aab0bf;
+    --text: #eef1f7;
+    --muted: #7a8194;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body{
+    font-family: 'SFMono-Regular', ui-monospace, 'Cascadia Code', 'Consolas', Menlo, monospace;
+    color: var(--text);
+  }
+
+  #bg{
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 0;
+  }
+
+  main{
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.5rem, 4vh, 3rem);
+    padding: 2rem 1.5rem;
+  }
+
+  .timer{
+    font-size: clamp(3.5rem, 14vw, 8.5rem);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-align: center;
+    color: var(--text);
+    text-shadow: 0 0 40px rgba(255, 106, 61, 0.15), 0 0 2px rgba(255,255,255,0.2);
+    user-select: none;
+  }
+
+  .progress-wrap{
+    position: relative;
+    width: min(560px, 82vw);
+    padding-top: 22px;
+  }
+
+  .progress-track{
+    position: relative;
+    width: 100%;
+    height: 3px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.12);
+    overflow: visible;
+  }
+
+  .progress-fill{
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+    box-shadow: 0 0 10px rgba(255,106,61,0.6);
+    transition: width 0.4s linear;
+  }
+
+  .rocket{
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 34px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    transition: left 0.4s linear;
+    filter: drop-shadow(0 0 6px rgba(255,106,61,0.65));
+    pointer-events: none;
+  }
+
+  .rocket svg{ width: 100%; height: 100%; display: block; }
+
+  .controls{
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn{
+    font-family: inherit;
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+    padding: 0.85rem 1.8rem;
+    border-radius: 999px;
+    border: 1px solid var(--grey-border);
+    background: var(--grey-bg);
+    color: var(--grey-text);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  }
+
+  .btn:hover{
+    background: var(--grey-bg-hover);
+    color: var(--text);
+  }
+
+  .btn:active{
+    transform: scale(0.96);
+  }
+
+  .btn.primary{
+    background: linear-gradient(180deg, #ff8659, var(--primary));
+    border-color: var(--primary-dark);
+    color: #1a0c05;
+    font-weight: 700;
+    box-shadow: 0 0 22px rgba(255,106,61,0.35);
+  }
+
+  .btn.primary:hover{
+    background: linear-gradient(180deg, #ff9668, #ff7a4c);
+  }
+
+  .btn.primary.active{
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  .btn-wrap{
+    position: relative;
+    display: inline-flex;
+  }
+
+  .pilot-badge{
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 20%;
+    background: #000;
+    border: 2px solid var(--grey-border);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+
+  @keyframes pulse{
+    0%, 100%{ box-shadow: 0 0 18px rgba(255,106,61,0.35); }
+    50%{ box-shadow: 0 0 34px rgba(255,106,61,0.65); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<main>
+  <div class="timer" id="timer">25:00</div>
+
+  <div class="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="fill"></div>
+    </div>
+    <div class="rocket" id="rocket">
+      <svg viewBox="0 0 44 20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 10 L8 7.5 L8 12.5 Z" fill="#ff9a5e" opacity="0.85"/>
+        <path d="M9 10 C9 6.5 14 4 22 3.6 C31 3.3 37 6.2 41 10 C37 13.8 31 16.7 22 16.4 C14 16 9 13.5 9 10 Z" fill="#dfe3ec"/>
+        <path d="M22 3.6 C29 4.4 34.5 6.7 38.5 10 C34.5 13.3 29 15.6 22 16.4 C25.5 14 27.5 12 27.5 10 C27.5 8 25.5 6 22 3.6 Z" fill="#ff6a3d"/>
+        <circle cx="19" cy="10" r="2.6" fill="#0a0d14"/>
+        <circle cx="19" cy="10" r="1.3" fill="#8fd0ff"/>
+        <path d="M10 8.4 C7.5 7.4 5 7.2 3 8.2 L7 10 Z" fill="#c3c8d4"/>
+        <path d="M10 11.6 C7.5 12.6 5 12.8 3 11.8 L7 10 Z" fill="#c3c8d4"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="launch">發射</button>
+    <button class="btn" id="standby">待機</button>
+    <div class="btn-wrap">
+      <img class="pilot-badge" src="aaedc62d-8585-4b86-bb36-47790eba9264.avif" alt="">
+      <button class="btn" id="return">返航</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Timer logic ---------- */
+
+  var TOTAL = 25 * 60;
+  var remaining = TOTAL;
+  var timerId = null;
+  var running = false;
+
+  var timerEl = document.getElementById('timer');
+  var fillEl = document.getElementById('fill');
+  var rocketEl = document.getElementById('rocket');
+  var launchBtn = document.getElementById('launch');
+  var standbyBtn = document.getElementById('standby');
+  var returnBtn = document.getElementById('return');
+
+  function formatTime(s){
+    var m = Math.floor(s / 60).toString().padStart(2, '0');
+    var sec = (s % 60).toString().padStart(2, '0');
+    return m + ':' + sec;
+  }
+
+  function updateUI(){
+    timerEl.textContent = formatTime(remaining);
+    var progress = ((TOTAL - remaining) / TOTAL) * 100;
+    fillEl.style.width = progress + '%';
+    rocketEl.style.left = progress + '%';
+  }
+
+  function tick(){
+    if (remaining > 0){
+      remaining -= 1;
+      updateUI();
+    }
+    if (remaining <= 0){
+      stopTimer();
+    }
+  }
+
+  function startTimer(){
+    if (running || remaining <= 0) return;
+    running = true;
+    launchBtn.classList.add('active');
+    timerId = setInterval(tick, 1000);
+  }
+
+  function stopTimer(){
+    running = false;
+    launchBtn.classList.remove('active');
+    if (timerId){ clearInterval(timerId); timerId = null; }
+  }
+
+  function resetTimer(){
+    stopTimer();
+    remaining = TOTAL;
+    updateUI();
+  }
+
+  launchBtn.addEventListener('click', startTimer);
+  standbyBtn.addEventListener('click', stopTimer);
+  returnBtn.addEventListener('click', resetTimer);
+
+  updateUI();
+
+  /* ---------- Background: stars + planet (canvas) ---------- */
+
+  var canvas = document.getElementById('bg');
+  var ctx = canvas.getContext('2d');
+  var W = 0, H = 0, DPR = 1;
+
+  // deterministic PRNG so star field never shifts between draws/reloads
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  var rand = mulberry32(20260809);
+  var STAR_COUNT = 260;
+  var STARS = [];
+  for (var i = 0; i < STAR_COUNT; i++){
+    STARS.push({
+      x: rand(),
+      y: rand() * 0.72,
+      r: 0.4 + rand() * 1.3,
+      a: 0.25 + rand() * 0.65
+    });
+  }
+
+  function resize(){
+    DPR = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    draw();
+  }
+
+  function debounce(fn, wait){
+    var t;
+    return function(){
+      var args = arguments;
+      clearTimeout(t);
+      t = setTimeout(function(){ fn.apply(null, args); }, wait);
+    };
+  }
+
+  function drawBackdrop(){
+    var g = ctx.createRadialGradient(W * 0.5, H * 0.15, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.9);
+    g.addColorStop(0, '#0a0f1e');
+    g.addColorStop(1, '#020308');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawStars(){
+    for (var i = 0; i < STARS.length; i++){
+      var s = STARS[i];
+      var x = s.x * W, y = s.y * H;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,' + s.a + ')';
+      ctx.arc(x, y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function shade(b){
+    // b: 0 (dark side) -> 1 (fully lit / rim)
+    var dark = [8, 13, 26];
+    var mid = [40, 98, 140];
+    var bright = [205, 235, 255];
+    var c;
+    if (b < 0.5){
+      var t = b / 0.5;
+      c = [
+        dark[0] + (mid[0] - dark[0]) * t,
+        dark[1] + (mid[1] - dark[1]) * t,
+        dark[2] + (mid[2] - dark[2]) * t
+      ];
+    } else {
+      var t2 = (b - 0.5) / 0.5;
+      c = [
+        mid[0] + (bright[0] - mid[0]) * t2,
+        mid[1] + (bright[1] - mid[1]) * t2,
+        mid[2] + (bright[2] - mid[2]) * t2
+      ];
+    }
+    return 'rgb(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ')';
+  }
+
+  function drawAtmosphere(cx, cy, R){
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < 4; i++){
+      var rr = R + 4 + i * 9;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(110,180,255,' + (0.13 - i * 0.026) + ')';
+      ctx.lineWidth = 7 + i * 5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawPlanet(){
+    var R = Math.max(W, H) * 1.05;
+    var cx = W * 0.5;
+    var apexY = H * 0.62; // where the horizon apex sits on screen
+    var cy = apexY + R;
+
+    drawAtmosphere(cx, cy, R);
+
+    // light source: upper-left, slightly toward viewer
+    var Lx = -0.55, Ly = 0.62, Lz = 0.55;
+    var Llen = Math.sqrt(Lx * Lx + Ly * Ly + Lz * Lz);
+    Lx /= Llen; Ly /= Llen; Lz /= Llen;
+
+    var latSteps = 64; // rings across the visible cap (northern hemisphere only)
+    for (var i = 0; i <= latSteps; i++){
+      var phi = (Math.PI / 2) * (i / latSteps); // 0..90deg
+      var ringR = Math.cos(phi);
+      var y3 = Math.sin(phi);
+
+      // quick reject: whole ring below/above canvas
+      var sy0 = cy - R * y3;
+      if (sy0 < -40) continue;
+      if (sy0 > H + 40) continue;
+
+      var circumSteps = Math.max(6, Math.round(ringR * 150) + 4);
+      for (var j = 0; j < circumSteps; j++){
+        var theta = (Math.PI * 2) * (j / circumSteps);
+        var x3 = ringR * Math.cos(theta);
+        var z3 = ringR * Math.sin(theta);
+        if (z3 < 0) continue; // back of sphere, not camera-facing
+
+        var sx = cx + x3 * R;
+        var sy = cy - y3 * R;
+        if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
+
+        var nx = x3, ny = y3, nz = z3; // unit normal (point is on unit sphere * R)
+        var lambert = nx * Lx + ny * Ly + nz * Lz;
+        if (lambert < 0) lambert = 0;
+
+        var rim = Math.pow(1 - nz, 4); // 0 at sphere center-facing point, 1 near limb
+        var bright = lambert * 0.8 + rim * 0.55 + 0.035;
+        if (bright > 1) bright = 1;
+
+        ctx.fillStyle = shade(bright);
+        var size = 1.0 + bright * 1.5;
+        ctx.beginPath();
+        ctx.arc(sx, sy, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    drawBackdrop();
+    drawStars();
+    drawPlanet();
+  }
+
+  window.addEventListener('resize', debounce(resize, 150));
+  resize();
+
+})();
+</script>
+
+</body>
+</html>
