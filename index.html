@@ -64,6 +64,33 @@
     color: var(--text);
     text-shadow: 0 0 40px rgba(255, 106, 61, 0.15), 0 0 2px rgba(255,255,255,0.2);
     user-select: none;
+    transition: color 0.4s ease;
+  }
+
+  .timer.warning{
+    color: #ff4136;
+    text-shadow: 0 0 46px rgba(255, 65, 54, 0.6), 0 0 2px rgba(255,255,255,0.25);
+    animation: warningPulse 1.1s ease-in-out infinite;
+  }
+
+  @keyframes warningPulse{
+    0%, 100%{ opacity: 1; }
+    50%{ opacity: 0.55; }
+  }
+
+  body.flash::after{
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 65, 54, 0.22);
+    z-index: 5;
+    pointer-events: none;
+    animation: flashFade 0.9s ease-out forwards;
+  }
+
+  @keyframes flashFade{
+    0%{ opacity: 1; }
+    100%{ opacity: 0; }
   }
 
   .sun-info{
@@ -233,9 +260,12 @@
   /* ---------- Timer logic ---------- */
 
   var TOTAL = 25 * 60;
+  var WARNING_AT = 3 * 60;
   var remaining = TOTAL;
   var timerId = null;
   var running = false;
+  var warningTriggered = false;
+  var audioCtx = null;
 
   var timerEl = document.getElementById('timer');
   var fillEl = document.getElementById('fill');
@@ -261,6 +291,10 @@
     if (remaining > 0){
       remaining -= 1;
       updateUI();
+      if (remaining === WARNING_AT && !warningTriggered){
+        warningTriggered = true;
+        triggerWarning();
+      }
     }
     if (remaining <= 0){
       stopTimer();
@@ -271,6 +305,7 @@
     if (running || remaining <= 0) return;
     running = true;
     launchBtn.classList.add('active');
+    ensureAudioCtx();
     timerId = setInterval(tick, 1000);
   }
 
@@ -283,7 +318,54 @@
   function resetTimer(){
     stopTimer();
     remaining = TOTAL;
+    warningTriggered = false;
+    timerEl.classList.remove('warning');
     updateUI();
+  }
+
+  /* ---------- 3-minute warning (visual + sound) ---------- */
+
+  function ensureAudioCtx(){
+    if (!audioCtx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function beep(ctx, time, freq, dur){
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.35, time + 0.02);
+    gain.gain.linearRampToValueAtTime(0, time + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(time);
+    osc.stop(time + dur + 0.02);
+  }
+
+  function playWarningChime(){
+    var ctx = ensureAudioCtx();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+    beep(ctx, now, 880, 0.16);
+    beep(ctx, now + 0.24, 880, 0.16);
+    beep(ctx, now + 0.48, 1046.5, 0.24);
+  }
+
+  function triggerWarning(){
+    timerEl.classList.add('warning');
+    document.body.classList.remove('flash');
+    void document.body.offsetWidth; // restart the flash animation if it's already run once
+    document.body.classList.add('flash');
+    playWarningChime();
   }
 
   launchBtn.addEventListener('click', startTimer);
