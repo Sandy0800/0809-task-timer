@@ -25,7 +25,8 @@
     width: 100%;
     height: 100%;
     background: var(--bg);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   body{
@@ -216,6 +217,37 @@
     0%, 100%{ box-shadow: 0 0 18px rgba(255,106,61,0.35); }
     50%{ box-shadow: 0 0 34px rgba(255,106,61,0.65); }
   }
+
+  .quote{
+    max-width: min(600px, 88vw);
+    margin: 0;
+    text-align: center;
+  }
+
+  .quote-text{
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', 'Noto Serif TC', serif;
+    font-weight: 700;
+    font-size: clamp(1rem, 2.3vw, 1.4rem);
+    line-height: 1.65;
+    color: #16171c;
+    background: #f2d90f;
+    padding: 0.04em 0.22em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    display: inline;
+  }
+
+  .quote-cite{
+    display: block;
+    margin-top: 0.7rem;
+    font-family: Georgia, 'Times New Roman', 'Noto Serif TC', serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--grey-text);
+  }
 </style>
 </head>
 <body>
@@ -251,6 +283,11 @@
       <button class="btn" id="return">返航</button>
     </div>
   </div>
+
+  <blockquote class="quote">
+    <p class="quote-text">&ldquo;Shoot for the moon. Even if you miss, you&rsquo;ll land among the stars.&rdquo;</p>
+    <cite class="quote-cite">— Norman Vincent Peale</cite>
+  </blockquote>
 </main>
 
 <script>
