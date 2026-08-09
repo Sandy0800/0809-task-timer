@@ -66,6 +66,17 @@
     user-select: none;
   }
 
+  .sun-info{
+    margin-top: -0.5rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    min-height: 1.2em;
+    user-select: none;
+  }
+
   .progress-wrap{
     position: relative;
     width: min(560px, 82vw);
@@ -186,6 +197,7 @@
 
 <main>
   <div class="timer" id="timer">25:00</div>
+  <div class="sun-info" id="sunInfo">--</div>
 
   <div class="progress-wrap">
     <div class="progress-track">
@@ -279,6 +291,39 @@
   returnBtn.addEventListener('click', resetTimer);
 
   updateUI();
+
+  /* ---------- Sunrise / sunset ---------- */
+
+  var sunInfoEl = document.getElementById('sunInfo');
+  var SUN_API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=25.03&longitude=121.56&daily=sunrise,sunset&timezone=Asia/Taipei&forecast_days=1';
+
+  function formatHM(isoTime){
+    return isoTime.split('T')[1].slice(0, 5);
+  }
+
+  function loadSunTimes(){
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function(){ controller.abort(); }, 8000);
+
+    fetch(SUN_API_URL, { signal: controller.signal })
+      .then(function(res){
+        if (!res.ok) throw new Error('bad response');
+        return res.json();
+      })
+      .then(function(data){
+        var sunrise = data.daily.sunrise[0];
+        var sunset = data.daily.sunset[0];
+        sunInfoEl.textContent = '日出 ' + formatHM(sunrise) + ' ／ 日落 ' + formatHM(sunset);
+      })
+      .catch(function(){
+        sunInfoEl.textContent = '離線';
+      })
+      .finally(function(){
+        clearTimeout(timeoutId);
+      });
+  }
+
+  loadSunTimes();
 
   /* ---------- Background: stars + planet (canvas) ---------- */
 
