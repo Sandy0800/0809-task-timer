@@ -538,6 +538,7 @@
   var TOTAL = 25 * 60;
   var WARNING_AT = 3 * 60;
   var LAUNCH_BURST_MS = 950; // duration of the ignition burst effect on the rocket
+  var AUTO_LAUNCH_INTERVAL = 10 * 60; // seconds between automatic background launch bursts
   var remaining = TOTAL;
   var timerId = null;
   var running = false;
@@ -666,6 +667,13 @@
   returnBtn.addEventListener('click', resetTimer);
 
   updateUI();
+
+  /* ---------- Auto launch cycle (background visual only, independent of the main timer) ---------- */
+
+  // Every AUTO_LAUNCH_INTERVAL seconds, replay the rocket ignition burst on its own,
+  // regardless of whether the user has manually launched, stopped, or reset the countdown.
+  // This never touches remaining/running/timerId, it is purely a repeating visual effect.
+  setInterval(triggerLaunchBurst, AUTO_LAUNCH_INTERVAL * 1000);
 
   /* ---------- Sunrise / sunset ---------- */
 
