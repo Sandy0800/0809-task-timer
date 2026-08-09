@@ -147,7 +147,89 @@
     pointer-events: none;
   }
 
-  .rocket svg{ width: 100%; height: 100%; display: block; }
+  .rocket svg{ width: 100%; height: 100%; display: block; transform-origin: 50% 50%; }
+
+  /* ---- launch burst: ignition flash + exhaust particles + shake ---- */
+
+  .rocket.launch-burst{
+    animation: rocketIgniteGlow 0.95s ease-out 1;
+  }
+
+  .rocket.launch-burst svg{
+    animation: rocketShake 0.6s ease-in-out 1;
+  }
+
+  .rocket-burst{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .burst-glow{
+    position: absolute;
+    left: 16%;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, var(--primary) 38%, rgba(255,106,61,0) 72%);
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  .burst-particle{
+    position: absolute;
+    left: 16%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0;
+  }
+
+  .rocket.launch-burst .burst-glow{
+    animation: burstGlow 0.9s ease-out 1;
+  }
+
+  .rocket.launch-burst .burst-particle{
+    animation: burstParticle 0.8s ease-out 1;
+  }
+
+  .p1{ --dx: -20px; --dy: -7px; animation-delay: 0s !important; }
+  .p2{ --dx: -25px; --dy: 5px; animation-delay: 0.03s !important; }
+  .p3{ --dx: -17px; --dy: 11px; animation-delay: 0.06s !important; }
+  .p4{ --dx: -22px; --dy: -12px; animation-delay: 0.02s !important; }
+  .p5{ --dx: -28px; --dy: 1px; animation-delay: 0.08s !important; }
+  .p6{ --dx: -15px; --dy: 8px; animation-delay: 0.05s !important; }
+
+  @keyframes rocketIgniteGlow{
+    0%{ filter: drop-shadow(0 0 6px rgba(255,106,61,0.65)); }
+    18%{ filter: drop-shadow(0 0 24px rgba(255,106,61,0.95)) drop-shadow(0 0 46px rgba(255,138,60,0.55)); }
+    100%{ filter: drop-shadow(0 0 6px rgba(255,106,61,0.65)); }
+  }
+
+  @keyframes rocketShake{
+    0%, 100%{ transform: translate(0, 0) rotate(0deg); }
+    15%{ transform: translate(-1.2px, 1px) rotate(-4deg); }
+    30%{ transform: translate(1.2px, -1px) rotate(3deg); }
+    45%{ transform: translate(-1px, -1px) rotate(-3deg); }
+    60%{ transform: translate(1px, 1px) rotate(2deg); }
+    80%{ transform: translate(-0.5px, 0.5px) rotate(-1deg); }
+  }
+
+  @keyframes burstGlow{
+    0%{ transform: scale(0); opacity: 1; }
+    30%{ transform: scale(3.2); opacity: 1; }
+    100%{ transform: scale(5.5); opacity: 0; }
+  }
+
+  @keyframes burstParticle{
+    0%{ transform: translate(0, 0) scale(1); opacity: 1; }
+    100%{ transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+  }
 
   .controls{
     display: flex;
@@ -337,6 +419,10 @@
 
   @media (prefers-reduced-motion: reduce){
     .dog-deco{ animation: none; }
+    .rocket.launch-burst,
+    .rocket.launch-burst svg,
+    .rocket.launch-burst .burst-glow,
+    .rocket.launch-burst .burst-particle{ animation: none; }
   }
 </style>
 </head>
@@ -397,6 +483,15 @@
       <div class="progress-fill" id="fill"></div>
     </div>
     <div class="rocket" id="rocket">
+      <div class="rocket-burst" aria-hidden="true">
+        <span class="burst-glow"></span>
+        <span class="burst-particle p1"></span>
+        <span class="burst-particle p2"></span>
+        <span class="burst-particle p3"></span>
+        <span class="burst-particle p4"></span>
+        <span class="burst-particle p5"></span>
+        <span class="burst-particle p6"></span>
+      </div>
       <svg viewBox="0 0 44 20" xmlns="http://www.w3.org/2000/svg">
         <path d="M2 10 L8 7.5 L8 12.5 Z" fill="#ff9a5e" opacity="0.85"/>
         <path d="M9 10 C9 6.5 14 4 22 3.6 C31 3.3 37 6.2 41 10 C37 13.8 31 16.7 22 16.4 C14 16 9 13.5 9 10 Z" fill="#dfe3ec"/>
@@ -442,11 +537,13 @@
 
   var TOTAL = 25 * 60;
   var WARNING_AT = 3 * 60;
+  var LAUNCH_BURST_MS = 950; // duration of the ignition burst effect on the rocket
   var remaining = TOTAL;
   var timerId = null;
   var running = false;
   var warningTriggered = false;
   var audioCtx = null;
+  var launchBurstTimeoutId = null;
 
   var timerEl = document.getElementById('timer');
   var fillEl = document.getElementById('fill');
@@ -486,8 +583,21 @@
     if (running || remaining <= 0) return;
     running = true;
     launchBtn.classList.add('active');
+    triggerLaunchBurst();
     ensureAudioCtx();
     timerId = setInterval(tick, 1000);
+  }
+
+  /* ---------- Launch burst (ignition flash + exhaust particles) ---------- */
+
+  function triggerLaunchBurst(){
+    rocketEl.classList.remove('launch-burst');
+    void rocketEl.offsetWidth; // restart the animation if it's already run once
+    rocketEl.classList.add('launch-burst');
+    clearTimeout(launchBurstTimeoutId);
+    launchBurstTimeoutId = setTimeout(function(){
+      rocketEl.classList.remove('launch-burst');
+    }, LAUNCH_BURST_MS);
   }
 
   function stopTimer(){
@@ -498,6 +608,8 @@
 
   function resetTimer(){
     stopTimer();
+    clearTimeout(launchBurstTimeoutId);
+    rocketEl.classList.remove('launch-burst');
     remaining = TOTAL;
     warningTriggered = false;
     timerEl.classList.remove('warning');
